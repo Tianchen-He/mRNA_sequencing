@@ -31,13 +31,49 @@ test = internal_builder("GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCA
 
 subset_data <- head(test, 100000)
 
-# 写出到 Excel 文件（在当前工作目录）
 write_xlsx(subset_data, "NIST_internal_fragment_profile_100000.xlsx")
 
 write_xlsx(test, "NIST_internal_fragment_profile.xlsx")
 ```
 
 ```{r}
+# first variable: the name of your sample
+# second variable: sequence of your sample(for RNA, it is 5')
+# third variable: data file location
+# fourth variable: sample type(synthetic_RNA/natural_RNA/peptide)
+# fifth variable: the intact mass limit for your sample(ex. >= 24000Da)
+# sixth variable: the number of interval detected lower limit set for filtering purpose 
+# seventh variable: retention time lower limit set for filtering purpose(usually the limit is decided by the observed latest intact mass)
+source("Source/advanced_plotting.R")
+source("Source/introduction.R")
+source("Source/blind_seq.R")
+source("Source/plotting.R")
 
+set_up("100N", "GCCCGGAUAGCUCAGDCGGDAGAGCAGGGGAUUGAA*AUCCCCGUgUCCUUGGuUCGAUUCCGAG4CCGGGCACCA", "Data/Phe_Ind_5min_251005_JYL.xlsx", "natural_RNA", 32000, 2, 20)
+
+# Define ppm matching function
+ppm_match <- function(obs, theo, tol = 10) {
+  abs((obs - theo) / theo * 1e6) <= tol
+}
+
+matches <- list()
+
+# Loop through each observed mass in df and find matching theoretical masses
+for (i in seq_len(nrow(df))) {
+  obs_mass <- df$monoisotopic_mass[i]
+  matched_rows <- test[ppm_match(obs_mass, test$theoretical_mass, 10), , drop = FALSE]
+  
+  if (nrow(matched_rows) > 0) {
+    matched_rows$exp_mass  <- obs_mass
+    matched_rows$ppm_error <- (obs_mass - matched_rows$theoretical_mass) / matched_rows$theoretical_mass * 1e6
+    matches[[length(matches) + 1]] <- matched_rows
+  }
+}
+
+# Combine all matches into one table
+match_results <- dplyr::bind_rows(matches)
+
+# Write to Excel
+writexl::write_xlsx(match_results, "mRNA_match_results.xlsx")
 ```
 

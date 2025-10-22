@@ -1,0 +1,115 @@
+---
+title: "mRNA_mass_reversion"
+output: html_document
+date: "2025-10-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+source("mass_reversion.R")
+```
+
+```{r}
+library(readxl)
+df <- read_xlsx("NIST_internal_fragment_profile_100000.xlsx")
+```
+
+```{r}
+library(dplyr)
+
+# Get unique starting positions
+start_positions <- unique(df$starting_position)
+
+# Set the test length
+test_length <- 40
+
+# Set mass tolerance (adjust as needed)
+mass_tolerance <- 0.05
+
+# Run find_compositions for each starting position
+validation_results <- lapply(start_positions, function(pos) {
+  # Get the first matching row for this starting position
+  row <- df %>% filter(starting_position == pos) %>% slice(40)
+  
+  # Extract the target mass
+  target_mass <- row$theoretical_mass
+  
+  # Run the composition finder
+  comp <- find_compositions(
+    length = test_length,
+    target_mass = target_mass,
+    tolerance = mass_tolerance,
+    max_methyl = 0,
+    direction = "internal"
+  )
+
+  # Add context columns
+  if (nrow(comp) > 0) {
+    comp$starting_position <- pos
+    comp$target_mass <- target_mass
+  } else {
+    comp <- data.frame(
+      A = NA, C = NA, G = NA, U = NA, Me = NA,
+      direction = "internal",
+      total_mass = NA, mass_error = NA,
+      starting_position = pos,
+      target_mass = target_mass
+    )
+  }
+
+  return(comp)
+})
+```
+
+```{r}
+# # Combine all results
+validation_df <- do.call(rbind, validation_results)
+
+# Sort results by smallest absolute mass error
+validation_df <- validation_df %>%
+  arrange(abs(mass_error))
+
+# View results
+print(validation_df)
+```
+
+```{r}
+# --- Step 2. Count A/C/G/U per starting_position ---
+df_counts <- df %>%
+  group_by(starting_position) %>%
+  slice_head(n = 40) %>%          # take first 40 rows per group
+  summarise(
+    A = sum(base_at_ending_position == "A"),
+    C = sum(base_at_ending_position == "C"),
+    G = sum(base_at_ending_position == "G"),
+    U = sum(base_at_ending_position == "U"),
+    .groups = "drop"
+  )
+```
+
+```{r}
+# --- Step 3. Check if that combination appears in validation_results ---
+df_validated <- df_counts %>%
+  left_join(
+    validation_df %>%
+      select(A, C, G, U, starting_position, total_mass, mass_error),
+    by = c("A", "C", "G", "U", "starting_position")
+  ) %>%
+  mutate(
+    composition_match = !is.na(total_mass)
+  )
+
+# --- Step 4. View results ---
+print(df_validated)
+
+# See which didn’t match
+df_validated %>%
+  filter(!composition_match)
+```
+
+```{r}
+writexl::write_xlsx(df_validated, "/Users/rt753149/Desktop/mRNA_match_reversion_validation.xlsx")
+```
