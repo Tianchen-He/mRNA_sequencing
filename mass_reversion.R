@@ -14,6 +14,7 @@ find_compositions <- function(length, target_mass, tolerance = 0.01,
     direction,
     "5" =  97.9769,
     "3" = -61.95579,
+    "internal" = 18.01,
     0
   )
   
