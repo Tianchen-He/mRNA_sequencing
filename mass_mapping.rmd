@@ -1,0 +1,118 @@
+---
+title: "r"
+output: html_document
+date: "2025-10-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(readxl)
+```
+
+## Theoretical Mass Calculation
+
+```{r}
+source("Source/fragment_mass.r")
+df <- read_xlsx("Data/F-Luc_mazF.xlsx")
+```
+
+```{r}
+df <- add_fragment_mass(df)
+
+# --- Manual cleavage site -> mass mapping ---
+manual_masses <- c(
+  `6`  = 2232.31796,
+  `12` = 1621.25137,
+  `27` = 963.14633,
+  `28` = 2512.36401
+)
+
+# --- Apply manual imputations based on Cleavage site # ---
+for (site in names(manual_masses)) {
+  df$mass[df$`Cleavage site #` == as.numeric(site)] <- manual_masses[site]
+}
+
+df
+```
+
+# Match & Map
+
+```{r}
+exp <- read_xlsx("Data/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
+  janitor::clean_names() %>% 
+  drop_na() %>% 
+  select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
+  filter(apex_rt <= 20) %>%                
+  arrange(desc(monoisotopic_mass)) %>%
+  mutate(
+    sum_intensity = as.numeric(sum_intensity),
+    relative_abundance = as.numeric(relative_abundance),
+    number_of_detected_intervals = as.numeric(number_of_detected_intervals)
+  )
+```
+
+```{r}
+library(fuzzyjoin)
+
+ppm_match <- function(obs, theo, tol = 10) {
+  abs((obs - theo) / theo * 1e6) <= tol
+}
+
+df_matched <- fuzzy_inner_join(
+  exp, df,
+  by = c("monoisotopic_mass" = "mass"),
+  match_fun = function(x, y) ppm_match(x, y, tol = 10)
+) %>%
+  group_by(monoisotopic_mass) %>%
+  slice_max(order_by = sum_intensity, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+```
+
+```{r}
+df_unmatched <- fuzzy_join(
+  df, df_matched,
+  by = c("mass" = "monoisotopic_mass"),
+  match_fun = function(x, y) ppm_match(x, y, tol = 10),
+  mode = "anti"   # keeps only unmatched rows from df
+)
+```
+
+# Visualization
+
+```{r}
+library(ggplot2)
+# Color scale
+cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
+
+# Plot
+ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
+  geom_point(aes(color = relative_abundance), size = 3, alpha = 0.85) +
+  scale_color_gradientn(
+    colours = cold_to_warm,
+    name = "relative abundance",
+    guide = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(0.5, "cm"),
+      barheight = unit(2, "cm")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = c(0.1, 0.6),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 9),
+    axis.line = element_line(color = "black", linewidth = 0.4),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  ) +
+  labs(
+    x = "Mass (Da)",
+    y = "Retention Time (min)",
+    title = "Matched Mass vs Retention Time"
+  )
+```
+
+
