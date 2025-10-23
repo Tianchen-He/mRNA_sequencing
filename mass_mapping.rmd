@@ -88,10 +88,10 @@ cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
 
 # Plot
 ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
-  geom_point(aes(color = relative_abundance), size = 3, alpha = 0.85) +
+  geom_point(aes(color = log10(sum_intensity)), size = 3, alpha = 0.85) +
   scale_color_gradientn(
     colours = cold_to_warm,
-    name = "relative abundance",
+    name = expression(Log[10]*"(Sum Intensity)"),
     guide = guide_colorbar(
       title.position = "top",
       title.hjust = 0.5,
@@ -102,7 +102,7 @@ ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
   theme_minimal() +
   theme(
     panel.grid = element_blank(),
-    legend.position = c(0.1, 0.6),
+    legend.position = "right",  # 👉 move legend to right side
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 9),
     axis.line = element_line(color = "black", linewidth = 0.4),
@@ -115,4 +115,44 @@ ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
   )
 ```
 
+```{r}
+# Plot
+ggplot() +
+  # Background: all experimental points in grey
+  geom_point(
+    data = exp,
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "grey80", size = 2, alpha = 0.6
+  ) +
+  # Foreground: matched points in color
+  geom_point(
+    data = df_matched,
+    aes(x = monoisotopic_mass, y = relative_abundance, color = relative_abundance),
+    size = 3, alpha = 0.9
+  ) +
+  scale_color_gradientn(
+    colours = cold_to_warm,
+    name = "Relative Abundance",
+    guide = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(0.5, "cm"),
+      barheight = unit(2, "cm")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "right",
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 9),
+    axis.line = element_line(color = "black", linewidth = 0.4),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  ) +
+  labs(
+    x = "Mass (Da)",
+    y = "Relative Abundance",
+    title = "Matched Mass vs Relative Abundance"
+  )
 
+```
