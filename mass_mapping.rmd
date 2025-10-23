@@ -86,12 +86,19 @@ library(ggplot2)
 # Color scale
 cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
 
-# Plot
-ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
-  geom_point(aes(color = log10(sum_intensity)), size = 3, alpha = 0.85) +
+ggplot() +
+  # Grey points from exp_grey
+  geom_point(data = exp, aes(x = monoisotopic_mass, y = apex_rt),
+             color = "grey", size = 1, alpha = 0.85) +
+  
+  # Colored points from df_matched
+  geom_point(data = df_matched, aes(x = monoisotopic_mass, y = apex_rt, color = log10(sum_intensity)),
+             size = 3, alpha = 0.85) +
+  
+  # Color scale for df_matched points
   scale_color_gradientn(
     colours = cold_to_warm,
-    name = expression(Log[10]*"(Sum Intensity)"),
+    name = "Log (Intensity)",
     guide = guide_colorbar(
       title.position = "top",
       title.hjust = 0.5,
@@ -99,10 +106,12 @@ ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
       barheight = unit(2, "cm")
     )
   ) +
+  
+  # Theme and labels
   theme_minimal() +
   theme(
     panel.grid = element_blank(),
-    legend.position = "right",  # 👉 move legend to right side
+    legend.position = "right",
     legend.title = element_text(size = 10, face = "bold"),
     legend.text = element_text(size = 9),
     axis.line = element_line(color = "black", linewidth = 0.4),
@@ -113,6 +122,7 @@ ggplot(df_matched, aes(x = monoisotopic_mass, y = apex_rt)) +
     y = "Retention Time (min)",
     title = "Matched Mass vs Retention Time"
   )
+
 ```
 
 ```{r}
