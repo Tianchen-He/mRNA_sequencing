@@ -1,5 +1,6 @@
 # Simulate RNA cleavage for different enzymes
 # Supported enzymes (extendable): "MazF", "RNaseT1", "RNaseA"
+source("Source/fragment_mass.r")
 
 cleavage <- function(seq_ref, enzyme = "MazF") {
   stopifnot(is.character(seq_ref), length(seq_ref) == 1)
@@ -59,14 +60,18 @@ cleavage <- function(seq_ref, enzyme = "MazF") {
   ends <- c(cleave_positions - 1L, n)
   keep <- (ends - starts + 1L) > 0L
   starts <- starts[keep]
-  ends   <- ends[keep]
+  ends <- ends[keep]
   cleave_pos_for_frag <- c(0L, cleave_positions)[keep]
-  
-  data.frame(
+
+  df <- data.frame(
     Cleavage_site = seq_along(starts) - 1L,
     Cleave_position = replace(cleave_pos_for_frag, 1, cleave_pos_for_frag[2]),
     Fragment_size = ends - starts + 1L,
     Fragment_sequence = substring(seq_ref, starts, ends),
     stringsAsFactors = FALSE
   )
+  
+  df <- add_fragment_mass(df)
+  names(df)[names(df) == "mass"] <- "Theoretic_mass"
+  return(df)
 }
