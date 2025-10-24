@@ -30,7 +30,7 @@ manual_masses <- c(
 
 # --- Apply manual imputations based on Cleavage site # ---
 for (site in names(manual_masses)) {
-  df$mass[df$`Cleavage site #` == as.numeric(site)] <- manual_masses[site]
+  df$theo_mass[df$`Cleavage site #` == as.numeric(site)] <- manual_masses[site]
 }
 
 df
@@ -61,7 +61,7 @@ ppm_match <- function(obs, theo, tol = 10) {
 
 df_matched <- fuzzy_inner_join(
   exp, df,
-  by = c("monoisotopic_mass" = "mass"),
+  by = c("monoisotopic_mass" = "theo_mass"),
   match_fun = function(x, y) ppm_match(x, y, tol = 10)
 ) %>%
   group_by(monoisotopic_mass) %>%
@@ -73,10 +73,16 @@ df_matched <- fuzzy_inner_join(
 ```{r}
 df_unmatched <- fuzzy_join(
   df, df_matched,
-  by = c("mass" = "monoisotopic_mass"),
+  by = c("theo_mass" = "monoisotopic_mass"),
   match_fun = function(x, y) ppm_match(x, y, tol = 10),
   mode = "anti"   # keeps only unmatched rows from df
 )
+```
+
+```{r}
+df_matched$mass_diff <- df_matched$theo_mass - df_matched$monoisotopic_mass
+library(writexl)
+write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
 ```
 
 # Visualization
@@ -89,7 +95,7 @@ cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
 ggplot() +
   # Grey points from exp_grey
   geom_point(data = exp, aes(x = monoisotopic_mass, y = apex_rt),
-             color = "grey", size = 1, alpha = 0.85) +
+             color = "grey", size = 1, alpha = 0.6) +
   
   # Colored points from df_matched
   geom_point(data = df_matched, aes(x = monoisotopic_mass, y = apex_rt, color = log10(sum_intensity)),

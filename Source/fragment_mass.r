@@ -102,7 +102,7 @@ add_fragment_mass <- function(df) {
   }
   
   # Compute masses
-  df$mass <- sapply(seqs, compute_mass)
+  df$theo_mass <- sapply(seqs, compute_mass)
   
   # # Add chemical adjustments
   # df$mass <- df$mass + 97.9769 
