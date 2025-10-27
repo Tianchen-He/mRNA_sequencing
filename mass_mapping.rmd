@@ -7,6 +7,7 @@ date: "2025-10-22"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
+library(dplyr)
 ```
 
 ## Theoretical Mass Calculation
@@ -88,7 +89,7 @@ exp_unmatched <- find_unmatched(
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions(target_mass = 29893.87116, tolerance = 10, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 31727.31674, tolerance = 10, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}
