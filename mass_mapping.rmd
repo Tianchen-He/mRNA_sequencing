@@ -6,14 +6,14 @@ date: "2025-10-22"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyr)
 library(readxl)
 ```
 
 ## Theoretical Mass Calculation
 
 ```{r}
-source("Source/fragment_mass.r")
+source("Source/theo_mass_match.r")
+source("Source/mass_reversion.r")
 df <- read_xlsx("Data/F-Luc_mazF.xlsx")
 ```
 
@@ -39,7 +39,13 @@ df
 # Match & Map
 
 ```{r}
-exp <- read_xlsx("Data/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
+ppm_match <- function(obs, theo, tol = 10) {
+  abs((obs - theo) / theo * 1e6) <= tol
+}
+```
+
+```{r}
+exp <- read_xlsx("Data/1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
   janitor::clean_names() %>% 
   drop_na() %>% 
   select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
@@ -53,36 +59,47 @@ exp <- read_xlsx("Data/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>%
 ```
 
 ```{r}
-library(fuzzyjoin)
-
-ppm_match <- function(obs, theo, tol = 10) {
-  abs((obs - theo) / theo * 1e6) <= tol
-}
-
-df_matched <- fuzzy_inner_join(
-  exp, df,
-  by = c("monoisotopic_mass" = "theo_mass"),
-  match_fun = function(x, y) ppm_match(x, y, tol = 10)
-) %>%
-  group_by(monoisotopic_mass) %>%
-  slice_max(order_by = sum_intensity, n = 1, with_ties = FALSE) %>%
-  ungroup()
-
-```
-
-```{r}
-df_unmatched <- fuzzy_join(
-  df, df_matched,
-  by = c("theo_mass" = "monoisotopic_mass"),
-  match_fun = function(x, y) ppm_match(x, y, tol = 10),
-  mode = "anti"   # keeps only unmatched rows from df
+df_matched <- match_by_ppm(
+  exp = exp,
+  df = df,
+  exp_mass_col = "monoisotopic_mass",
+  theo_mass_col = "theo_mass",
+  intensity_col = "sum_intensity",
+  tol = 10
 )
 ```
 
 ```{r}
 df_matched$mass_diff <- df_matched$theo_mass - df_matched$monoisotopic_mass
 library(writexl)
-write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
+#write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
+```
+
+```{r}
+exp_unmatched <- find_unmatched(
+  df = exp,
+  df_matched = df_matched,
+  theo_mass_col = "monoisotopic_mass",
+  exp_mass_col = "monoisotopic_mass",
+  tol = 10
+)
+```
+
+# Mass reversion
+
+```{r}
+df_comp <- find_compositions(target_mass = 29893.87116, tolerance = 10, max_methyl = 0, max_length = 120)
+```
+
+```{r}
+mrna_seq <- "GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAAACAUAAAGAAAGGCCCGGCGCCAUUCUAUCCGCUAGAGGAUGGAACCGCUGGAGAGCAACUGCAUAAGGCUAUGAAGAGAUACGCCCUGGUUCCUGGAACAAUUGCUUUUACAGAUGCACAUAUCGAGGUGGACAUCACGUACGCGGAAUACUUCGAAAUGUCCGUUCGGUUGGCAGAAGCUAUGAAACGAUAUGGGCUGAAUACAAAUCACAGAAUCGUCGUAUGCAGUGAAAACUCUCUUCAAUUCUUUAUGCCGGUGUUGGGCGCGUUAUUUAUCGGAGUUGCAGUUGCGCCCGCGAACGACAUUUAUAAUGAACGUGAAUUGCUCAACAGUAUGGGCAUUUCGCAGCCUACCGUAGUGUUUGUUUCCAAAAAGGGGUUGCAAAAAAUUUUGAACGUGCAAAAAAAAUUACCAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGUACACGUUCGUCACAUCUCAUCUACCUCCCGGUUUUAAUGAAUACGAUUUUGUACCAGAGUCCUUUGAUCGUGACAAAACAAUUGCACUGAUAAUGAACUCCUCUGGAUCUACUGGGUUACCUAAGGGUGUGGCCCUUCCGCAUAGAACUGCCUGCGUCAGAUUCUCGCAUGCCAGAGAUCCUAUUUUUGGCAAUCAAAUCAUUCCGGAUACUGCGAUUUUAAGUGUUGUUCCAUUCCAUCACGGUUUUGGAAUGUUUACUACACUCGGAUAUUUGAUAUGUGGAUUUCGAGUCGUCUUAAUGUAUAGAUUUGAAGAGGAGCUGUUUUUACGAUCCCUUCAGGAUUACAAAAUUCAAAGUGCGUUGCUAGUACCAACCCUAUUUUCAUUCUUCGCCAAAAGCACUCUGAUUGACAAAUACGAUUUAUCUAAUUUACACGAAAUUGCUUCUGGGGGCGCACCUCUUUCGAAAGAAGUCGGGGAAGCGGUUGCAAAACGCUUCCAUCUUCCAGGGAUACGACAAGGAUAUGGGCUCACUGAGACUACAUCAGCUAUUCUGAUUACACCCGAGGGGGAUGAUAAACCGGGCGCGGUCGGUAAAGUUGUUCCAUUUUUUGAAGCGAAGGUUGUGGAUCUGGAUACCGGGAAAACGCUGGGCGUUAAUCAGAGAGGCGAAUUAUGUGUCAGAGGACCUAUGAUUAUGUCCGGUUAUGUAAACAAUCCGGAAGCGACCAACGCCUUGAUUGACAAGGAUGGAUGGCUACAUUCUGGAGACAUAGCUUACUGGGACGAAGACGAACACUUCUUCAUAGUUGACCGCUUGAAGUCUUUAAUUAAAUACAAAGGAUACCAGGUGGCCCCCGCUGAAUUGGAGUCGAUAUUGUUACAACACCCCAACAUCUUCGACGCGGGCGUGGCAGGUCUUCCCGACGAUGACGCCGGUGAACUUCCCGCCGCCGUUGUUGUUUUGGAGCACGGAAAGACGAUGACGGAAAAAGAGAUCGUGGAUUACGUCGCCAGUCAAGUAACAACCGCGAAAAAGUUGCGCGGAGGAGUUGUGUUUGUGGACGAAGUACCGAAAGGUCUUACCGGAAAACUCGACGCAAGAAAAAUCAGAGAGAUCCUCAUAAAGGCCAAGAAGGGCGGAAAGAUCGCCGUGUGAUAAUAGGCUGGAGCCUCGGUGGCCUAGCUUCUUGCCCCUUGGGCCUCCCCCCAGCCCCUCCUCCCCUUCCUGCACCCGUACCCCCGUGGUCUUUGAAUAAAGUCUGAGUGGGCGGCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGCAUAUGACUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUGAA"
+```
+
+```{r}
+seq_matched <- find_matching_compositions(
+  seq = mrna_seq,  
+  df_comp = df_comp   
+)
 ```
 
 # Visualization
@@ -172,3 +189,4 @@ ggplot() +
   )
 
 ```
+
