@@ -89,7 +89,7 @@ exp_unmatched <- find_unmatched(
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions_ppm(target_mass = 31727.31674, tolerance = 10, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 32085.149, tolerance = 10, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}
