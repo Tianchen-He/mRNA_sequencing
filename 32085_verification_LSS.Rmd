@@ -32,9 +32,7 @@ options(scipen = 999)
 ```
 
 ```{r}
-set_up("mRNA", "AAUCACAGAAUCGUCGUAUGCAGUGAAAACUCUCUUCAAUUCUUUAUGCCGGUGUUGGGCGCGUUAUUUAUCGGAGUUGCAGUUGCGCCCGCGAACGACA", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 24000, 0, 30) 
-
-theo_5[101,2] = theo_5[101,2] - 18.0106
+set_up("mRNA", "ACGUACGU", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "enzyme_cleaved", 24000, 0, 30) 
 ```
 
 ```{r adduct_finder}

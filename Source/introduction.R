@@ -86,6 +86,32 @@ build_theo = function(known_sequence, reference, ladder_5, sample_type){
     return_df = return_df %>% 
       mutate(n_position = row_number() - 1)
     return(return_df)
+  } else if(sample_type == "enzyme_cleaved"){
+    if(ladder_5 == TRUE){
+      return_df[1,1] = "Water"
+      return_df[1,2] = 18.015
+    } else {
+      return_df[1,1] = "3'"
+      return_df[1,2] = 0
+    }
+    i = 1
+    while(i <= nchar(known_sequence)) {
+      next_base = substr(known_sequence, i, i)
+      for(j in 1:nrow(reference)){
+        if(next_base == reference[j,1]){
+          return_df[nrow(return_df) + 1,2] = return_df[nrow(return_df),2] + reference[j,2]
+          return_df[nrow(return_df),1] = next_base
+          break
+        }
+      }
+      i = i+1
+    }
+    return_df = return_df %>% 
+      mutate(n_position = row_number() - 1)
+    if(ladder_5){
+      return_df[nrow(return_df), 2] = return_df[nrow(return_df), 2] - 18.015
+    }
+    return(return_df)
   }
 }
 
