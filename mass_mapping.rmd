@@ -15,26 +15,7 @@ library(dplyr)
 ```{r}
 source("Source/theo_mass_match.r")
 source("Source/mass_reversion.r")
-df <- read_xlsx("Data/F-Luc_mazF.xlsx")
-```
-
-```{r}
-df <- add_fragment_mass(df)
-
-# --- Manual cleavage site -> mass mapping ---
-manual_masses <- c(
-  `6`  = 2232.31796,
-  `12` = 1621.25137,
-  `27` = 963.14633,
-  `28` = 2512.36401
-)
-
-# --- Apply manual imputations based on Cleavage site # ---
-for (site in names(manual_masses)) {
-  df$theo_mass[df$`Cleavage site #` == as.numeric(site)] <- manual_masses[site]
-}
-
-df
+df <- read_xlsx("Data/NIST_MazF_cleavage_result.xlsx")
 ```
 
 # Match & Map
@@ -46,7 +27,7 @@ ppm_match <- function(obs, theo, tol = 10) {
 ```
 
 ```{r}
-exp <- read_xlsx("Data/1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
+exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
   janitor::clean_names() %>% 
   drop_na() %>% 
   select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
@@ -73,7 +54,7 @@ df_matched <- match_by_ppm(
 ```{r}
 df_matched$mass_diff <- df_matched$theo_mass - df_matched$monoisotopic_mass
 library(writexl)
-#write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
+write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
 ```
 
 ```{r}
@@ -89,7 +70,7 @@ exp_unmatched <- find_unmatched(
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions_ppm(target_mass = 32085.149, tolerance = 10, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 27264.386, tolerance = 10, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}
@@ -191,3 +172,46 @@ ggplot() +
 
 ```
 
+```{r}
+library(ggplot2)
+
+# Define your highlight mass
+highlight_mass <- 32085.149
+
+# Define color palette
+cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
+
+# Plot
+ggplot() +
+  # Background: all experimental points in grey
+  geom_point(
+    data = exp,
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "grey80", size = 2, alpha = 0.6
+  ) +
+  # Foreground: matched points in blue
+  geom_point(
+    data = df_matched,
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "#2c7bb6", size = 3, alpha = 0.9
+  ) +
+  # Highlight the specific mass in red
+  geom_point(
+    data = subset(exp, abs(monoisotopic_mass - highlight_mass) < 0.5),
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "#fdae61", size = 3, alpha = 0.9
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "none",  # no need for legend since colors are fixed
+    axis.line = element_line(color = "black", linewidth = 0.4),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  ) +
+  labs(
+    x = "Mass (Da)",
+    y = "Relative Abundance",
+    title = "Matched Mass vs Relative Abundance"
+  )
+
+```
