@@ -1,0 +1,63 @@
+---
+title: "32085_verification_LSS"
+author: "Shangsi Lin"
+date: "2025-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Add the function for ppm calculation
+ppm = function(observed, theo){
+  if(abs((observed - theo) / theo * 10^6) > 10) {
+    return(FALSE)
+  } else {
+    return(TRUE)
+  }
+}
+
+source("Source/introduction.R")
+source("Source/blind_seq.R")
+source("Source/plotting.R")
+source("Source/advanced_plotting.R")
+
+# get your dictionary file ready
+dictionary = read_xlsx("Data/uni_dictionary.xlsx")
+options(scipen = 999)
+```
+
+```{r}
+set_up("mRNA", "AAUCACAGAAUCGUCGUAUGCAGUGAAAACUCUCUUCAAUUCUUUAUGCCGGUGUUGGGCGCGUUAUUUAUCGGAGUUGCAGUUGCGCCCGCGAACGACA", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 24000, 0, 30) 
+
+theo_5[101,2] = theo_5[101,2] - 18.0106
+```
+
+```{r adduct_finder}
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 100, TRUE)
+theo_5_hydrated = theo_creater(df, theo_5, 18.0106, "hydrated 5'", 100, TRUE)
+theo_5_dehydrated = theo_creater(df, theo_5, -18.0106, "dehydrated 5'", 100, TRUE)
+theo_5_Na = theo_creater(df, theo_5, 21.98194, "Na adducted 5'", 100, TRUE)
+theo_5_K = theo_creater(df, theo_5, 37.95588, "K adducted 5'", 100, TRUE)
+theo_5_Co = theo_creater(df, theo_5, 56.93066, "Co adducted 5'", 100, TRUE)
+
+length(unique(rbind(new_theo_5, theo_5_hydrated, theo_5_dehydrated, theo_5_Na, theo_5_K, theo_5_Co)$position_5))
+
+write_xlsx(rbind(new_theo_5, theo_5_hydrated, theo_5_dehydrated, theo_5_Na, theo_5_K, theo_5_Co), "seq6_all_layers_LSS.xlsx")
+```
+ 
+```{r}
+df = read_xlsx("seq2_all_layers_LSS.xlsx")
+
+length(unique(df$position_5))
+
+df = read_xlsx("seq3_all_layers_LSS.xlsx")
+
+length(unique(df$position_5))
+```
+ 
+ 
