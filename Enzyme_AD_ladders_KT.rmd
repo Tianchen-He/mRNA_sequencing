@@ -1,0 +1,108 @@
+---
+title: "AD_ladder_fragments"
+output: html_document
+date: "2025-10-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+```{r}
+# Add the function for ppm calculation
+ppm = function(observed, theo){
+ if(abs((observed - theo) / theo * 10^6) > 10) {
+   return(FALSE)
+ } else {
+   return(TRUE)
+ }
+}
+
+source("Source/introduction.R")
+source("Source/blind_seq.R")
+source("Source/plotting.R")
+
+# get your dictionary file ready
+dictionary = read_xlsx("Data/uni_dictionary.xlsx")
+dictionary = dictionary[c(1, 2, 3, 4),]
+
+set_up("mRNA", "ACACUCGGAUAUUUGAUAUGUGGAUUUCGAGUCGUCUUAAUGUAUAGAUUUGAAGAGGAGCUGUUUUUACGAUCCCUUCAGGAUU", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 21)
+```
+
+```{r}
+prophet_5 = prophet(df, theo_5) #this will be the data frame for matching result, name it whatever you want
+prophet_3 = prophet(df, theo_3) #this will be the data frame for matching result, name it whatever you want
+
+# first variable: your data frame
+# second variable: your dictionary
+algorithm_output = blind_seq(df, dictionary)
+
+# first variable: the output data frame from nested algorithm
+# second variable: the minimum length for ladders you want to include in your result file
+# third variable: the location of your original data file
+output_ladders_found(algorithm_output, 6,  file_location)
+```
+
+```{r adduct_finder}
+assign("H2O", 18.01528, envir = .GlobalEnv)
+assign("H", 1.00784, envir = .GlobalEnv)
+
+theo_5_deH2O = theo_creater(df, theo_5, -H2O, "dehydrated 5'", 100, TRUE)
+#theo_5_H2O = theo_creater(df, theo_5, H2O, "hydrated 5'", 90, TRUE)
+
+theo_3_deH2O = theo_creater(df, theo_3, -H2O, "dehydrated 3'", 100, TRUE)
+# theo_3_H2O = theo_creater(df, theo_3, H2O, "hydrated 3'", 85, FALSE)
+
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 100, TRUE)
+new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 100, FALSE)
+
+# write_xlsx(rbind(
+#      new_theo_5, theo_5_deH2O, theo_5_Na, theo_5_Co, theo_5_H2O, theo_5_K), "Sec_May_all_layers.xlsx")#\theo_5_2Co, 
+      #new_theo_3, theo_3_Co, theo_3_Na, theo_3_2Co,
+      #theo_5_P, theo_5_PCo, theo_5_A, theo_5_ACo, theo_5_PCoH2O, theo_5_PH2O,
+      #theo_3_P, theo_3_PCo, theo_3_A, theo_3_ACo, theo_3_PCoH2O, theo_3_PH2O), "Sec_May_all_layers.xlsx")
+```
+
+```{r}
+df <- rbind(new_theo_5,theo_5_deH2O,new_theo_3, theo_3_deH2O)
+unique_positions <- unique(df$position_5)
+length(unique_positions)
+```
+
+```{r}
+palette = df %>% 
+  mutate(monoisotopic_mass = as.numeric(monoisotopic_mass), apex_rt = as.numeric(apex_rt)) %>% 
+  select(monoisotopic_mass, apex_rt, ladder_type) %>% 
+  drop_na() %>% 
+  filter(ladder_type %in% c("native 3'","dehydrated 3'"), apex_rt<=20)
+
+ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
+  geom_line(aes(group = ladder_type),color = "gray", size = 1) +
+  geom_point(
+        alpha=0.9,
+        size=2) +
+  theme_bw() +
+  labs(
+    x = "Monoisotopic Mass(Da)",
+    y = "Rentention Time(min)"
+  ) +
+  theme(plot.title = element_text(
+      size = 14,        
+      face = "bold",    
+      hjust = 0.5       # Horizontal justification (0 = left, 0.5 = center, 1 = right)
+    )
+  ) +
+  scale_x_continuous(
+    breaks = c(0, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500,25000),
+    limits = c(0, 12500)
+  ) +
+  scale_y_continuous(
+    breaks = c(2, 4, 6, 8, 10, 12, 14, 16, 18, 20),
+    limits = c(0, 12)
+  )
+```
+
+```{r}
+plot_depth(df, c(1, 100))
+```

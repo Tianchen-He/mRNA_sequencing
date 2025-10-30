@@ -173,10 +173,8 @@ ggplot() +
 ```
 
 ```{r}
-library(ggplot2)
-
 # Define your highlight mass
-highlight_mass <- 32085.149
+highlight_mass <- c(32085.149,27264.38645,19365.40956)
 
 # Define color palette
 cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
@@ -195,16 +193,15 @@ ggplot() +
     aes(x = monoisotopic_mass, y = relative_abundance),
     color = "#2c7bb6", size = 3, alpha = 0.9
   ) +
-  # Highlight the specific mass in red
   geom_point(
-    data = subset(exp, abs(monoisotopic_mass - highlight_mass) < 0.5),
+    data = subset(exp, sapply(monoisotopic_mass, function(m) any(abs(m - highlight_mass) < 0.5))),
     aes(x = monoisotopic_mass, y = relative_abundance),
     color = "#fdae61", size = 3, alpha = 0.9
   ) +
   theme_minimal() +
   theme(
     panel.grid = element_blank(),
-    legend.position = "none",  # no need for legend since colors are fixed
+    legend.position = "none",
     axis.line = element_line(color = "black", linewidth = 0.4),
     plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
   ) +
@@ -213,5 +210,4 @@ ggplot() +
     y = "Relative Abundance",
     title = "Matched Mass vs Relative Abundance"
   )
-
 ```
