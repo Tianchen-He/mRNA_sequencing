@@ -1,0 +1,158 @@
+---
+title: "32085_verification_LSS"
+author: "Tianchen He"
+date: "2025-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Add the function for ppm calculation
+ppm = function(observed, theo){
+  if(abs((observed - theo) / theo * 10^6) > 10) {
+    return(FALSE)
+  } else {
+    return(TRUE)
+  }
+}
+
+source("Source/introduction.R")
+source("Source/blind_seq.R")
+source("Source/plotting.R")
+source("Source/advanced_plotting.R")
+
+# get your dictionary file ready
+dictionary = read_xlsx("Data/uni_dictionary.xlsx")
+options(scipen = 999)
+```
+
+```{r}
+set_up("mRNA", "ACAUCUCAUCUACCUCCCGGUUUUAAUGAAUACGAUUUUGUACCAGAGUCCUUUGAUCGUG", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "enzyme_cleaved", 24000, 0, 30) 
+```
+
+```{r adduct_finder}
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 61, TRUE)
+theo_5_hydrated = theo_creater(df, theo_5, 18.0106, "hydrated 5'", 61, TRUE)
+theo_5_dehydrated = theo_creater(df, theo_5, -18.0106, "dehydrated 5'", 61, TRUE)
+theo_5_Na = theo_creater(df, theo_5, 21.98194, "Na adducted 5'", 61, TRUE)
+theo_5_K = theo_creater(df, theo_5, 37.95588, "K adducted 5'", 61, TRUE)
+theo_5_Co = theo_creater(df, theo_5, 56.93066, "Co adducted 5'", 61, TRUE)
+
+new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 61, FALSE)
+theo_3_hydrated = theo_creater(df, theo_3, 18.0106, "hydrated 3'", 61, FALSE)
+theo_3_dehydrated = theo_creater(df, theo_3, -18.0106, "dehydrated 3'", 61, FALSE)
+theo_3_Na = theo_creater(df, theo_3, 21.98194, "Na adducted 3'", 61, FALSE)
+theo_3_K = theo_creater(df, theo_3, 37.95588, "K adducted 3'", 61, FALSE)
+theo_3_Co = theo_creater(df, theo_3, 56.93066, "Co adducted 3'", 61, FALSE)
+
+length(unique(rbind(new_theo_5, theo_5_hydrated, theo_5_dehydrated, theo_5_Na, theo_5_K, theo_5_Co,
+                    new_theo_3, theo_3_hydrated, theo_3_dehydrated, theo_3_Na, theo_3_K, theo_3_Co)$position_5))
+
+write_xlsx(rbind(new_theo_5, theo_5_hydrated, theo_5_dehydrated, theo_5_Na, theo_5_K, theo_5_Co,
+                 new_theo_3, theo_3_hydrated, theo_3_dehydrated, theo_3_Na, theo_3_K, theo_3_Co), 
+           "Result/HTC/19365_all_layers.xlsx")
+```
+ 
+```{r}
+prophet_5 = prophet(df, theo_5)
+prophet_3 = prophet(df, theo_3)
+
+dictionary = dictionary[c(1, 2, 3, 4),]
+algorithm_output = blind_seq(df, dictionary)
+
+output_ladders_found(algorithm_output, 5, file_location)
+
+plot_ladders("Result/blind_sequencing_result_point_version.xlsx")
+```
+# Plot for 32085 Da (seq5)
+```{r}
+palette = read_xlsx("Result/HTC/32085_seq5_all_layers.xlsx") %>% 
+  mutate(monoisotopic_mass = as.numeric(monoisotopic_mass), apex_rt = as.numeric(apex_rt)) %>% 
+  select(monoisotopic_mass, apex_rt, ladder_type) %>% 
+  drop_na() %>% 
+#  filter(ladder_type %in% c("native 5'", "dehydrated 5'"))
+  filter(ladder_type %in% c("native 3'", "hydrated 3'"))
+
+p <- ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
+  geom_line(aes(group = ladder_type),color = "gray", size = 1) +
+  geom_point(
+        alpha=0.9,
+        size=2) +
+  theme_bw() +
+  labs(
+    x = "Monoisotopic Mass(Da)",
+    y = "Rentention Time(min)"
+  ) +
+  theme(plot.title = element_text(
+      size = 14,        
+      face = "bold",    
+      hjust = 0.5       # Horizontal justification (0 = left, 0.5 = center, 1 = right)
+    )
+  ) +
+  scale_x_continuous(
+    breaks = c(2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000),
+    limits = c(0, 27000)
+  ) +
+  scale_y_continuous(
+    breaks = c(2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+  )
+p
+ggsave("Result/HTC/32085_seq5_3'.png", plot = p, width = 12, height = 6, dpi = 300)
+```
+
+
+# Plot for 19365 Da
+```{r adduct_finder}
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 61, TRUE)
+theo_5_dehydrated = theo_creater(df, theo_5, -18.0106, "dehydrated 5'", 61, TRUE)
+
+new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 61, FALSE)
+theo_3_hydrated = theo_creater(df, theo_3, 18.0106, "hydrated 3'", 61, FALSE)
+
+length(unique(rbind(new_theo_5, theo_5_dehydrated, new_theo_3, theo_3_hydrated)$position_5))
+
+write_xlsx(rbind(new_theo_5, theo_5_dehydrated,
+                    new_theo_3, theo_3_hydrated), 
+           "Result/HTC/19365_all_layers.xlsx")
+```
+
+```{r}
+palette = read_xlsx("Result/HTC/19365_all_layers.xlsx") %>% 
+  mutate(monoisotopic_mass = as.numeric(monoisotopic_mass), apex_rt = as.numeric(apex_rt)) %>% 
+  select(monoisotopic_mass, apex_rt, ladder_type) %>% 
+  drop_na() %>% 
+  filter(ladder_type %in% c("native 5'", "dehydrated 5'"))
+#  filter(ladder_type %in% c("native 3'", "hydrated 3'"))
+
+p <- ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
+  geom_line(aes(group = ladder_type),color = "gray", size = 1) +
+  geom_point(
+        alpha=0.9,
+        size=2) +
+  theme_bw() +
+  labs(
+    x = "Monoisotopic Mass(Da)",
+    y = "Rentention Time(min)"
+  ) +
+  theme(plot.title = element_text(
+      size = 14,        
+      face = "bold",    
+      hjust = 0.5       # Horizontal justification (0 = left, 0.5 = center, 1 = right)
+    )
+  ) +
+  scale_x_continuous(
+    breaks = c(2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000),
+    limits = c(0, 27000)
+  ) +
+  scale_y_continuous(
+    breaks = c(2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+  )
+p
+ggsave("Result/HTC/19365_5'.png", plot = p, width = 12, height = 6, dpi = 300)
+```
+
