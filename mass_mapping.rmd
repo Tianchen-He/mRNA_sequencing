@@ -15,26 +15,7 @@ library(dplyr)
 ```{r}
 source("Source/theo_mass_match.r")
 source("Source/mass_reversion.r")
-df <- read_xlsx("Data/F-Luc_mazF.xlsx")
-```
-
-```{r}
-df <- add_fragment_mass(df)
-
-# --- Manual cleavage site -> mass mapping ---
-manual_masses <- c(
-  `6`  = 2232.31796,
-  `12` = 1621.25137,
-  `27` = 963.14633,
-  `28` = 2512.36401
-)
-
-# --- Apply manual imputations based on Cleavage site # ---
-for (site in names(manual_masses)) {
-  df$theo_mass[df$`Cleavage site #` == as.numeric(site)] <- manual_masses[site]
-}
-
-df
+df <- read_xlsx("Data/NIST_MazF_cleavage_result.xlsx")
 ```
 
 # Match & Map
@@ -46,7 +27,7 @@ ppm_match <- function(obs, theo, tol = 10) {
 ```
 
 ```{r}
-exp <- read_xlsx("Data/1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
+exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
   janitor::clean_names() %>% 
   drop_na() %>% 
   select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
@@ -89,7 +70,7 @@ exp_unmatched <- find_unmatched(
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions_ppm(target_mass = 32085.149, tolerance = 10, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 26042.480, tolerance = 10, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}
@@ -102,6 +83,12 @@ seq_matched <- find_matching_compositions(
   df_comp = df_comp   
 )
 ```
+
+```{r}
+write_xlsx(seq_matched,"seq_matched.xlsx")
+
+```
+
 
 # Visualization
 
@@ -191,3 +178,69 @@ ggplot() +
 
 ```
 
+```{r}
+# Define your highlight mass
+highlight_mass <- c(32085.149,27264.38645,19365.40956)
+
+# Define color palette
+cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
+
+# Plot
+ggplot() +
+  # Background: all experimental points in grey
+  geom_point(
+    data = exp,
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "grey80", size = 2, alpha = 0.6
+  ) +
+  # Foreground: matched points in blue
+  geom_point(
+    data = df_matched,
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "#2c7bb6", size = 3, alpha = 0.9
+  ) +
+  geom_point(
+    data = subset(exp, sapply(monoisotopic_mass, function(m) any(abs(m - highlight_mass) < 0.5))),
+    aes(x = monoisotopic_mass, y = relative_abundance),
+    color = "#fdae61", size = 3, alpha = 0.9
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "none",
+    axis.line = element_line(color = "black", linewidth = 0.4),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  ) +
+  labs(
+    x = "Mass (Da)",
+    y = "Relative Abundance",
+    title = "Matched Mass vs Relative Abundance"
+  )
+```
+
+
+```{r}
+library(openxlsx)
+# Split into letters
+letters <- strsplit(mrna_seq, "")[[1]]
+
+# Parameters
+chunk_size <- 50
+n <- length(letters)
+n_rows <- ceiling(n / chunk_size)
+
+# Create a vector padded with NA to a full rectangle, fill it left-to-right, top-to-bottom
+vec <- rep(NA_character_, n_rows * chunk_size)
+vec[1:n] <- letters
+
+# Build matrix BY ROW so each row has chunk_size bases horizontally
+mat <- matrix(vec, nrow = n_rows, ncol = chunk_size, byrow = TRUE)
+
+# Optional: add column names as positions 1..100 (or leave FALSE)
+colnames(mat) <- paste0(seq_len(chunk_size))
+
+# Convert to data.frame (optional) and write to excel
+df_seq <- as.data.frame(mat, stringsAsFactors = FALSE)
+
+write.xlsx(df_seq, "sequence_chunked_50_per_row.xlsx", colNames = TRUE)
+```
