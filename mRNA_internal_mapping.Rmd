@@ -49,7 +49,7 @@ source("Source/introduction.R")
 source("Source/blind_seq.R")
 source("Source/plotting.R")
 
-set_up("100N", "ACAAAUCACAGAAUCGUCGUAUGCAGUGAAAACUCUCUUCAAUUCUUUAUGCCGGUGUUGGGCGCGUUAUUUAUCGGAGUUGCAGUUGCGCCCGCGAACG", "Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx", "peptide", 32000, 2, 20)
+set_up("100N", "AAUGAAUACGAUUUUGUACCAGAGUCCUUUGAUCGUGACAAAACAAUUGCACUGAUAAUGAACUCCUCUGGAUCUACUGGGUUACCUAAGGGUGUGGCC", "Data/MazF_1st/Fluc_mRNA_MazFalone_251021_Xiaohong_new.xlsx", "peptide", 32000, 2, 20)
 
 # Define ppm matching function
 ppm_match <- function(obs, theo, tol = 10) {
@@ -88,4 +88,3 @@ cleavage_result <- cleavage("GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCC
 
 write_xlsx(cleavage_result, "Data/NIST_MazF_cleavage_result.xlsx")
 ```
-
