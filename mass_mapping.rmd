@@ -31,7 +31,7 @@ exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>
   janitor::clean_names() %>% 
   drop_na() %>% 
   select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
-  filter(apex_rt <= 20) %>%                
+  #filter(apex_rt <= 20) %>%                
   arrange(desc(monoisotopic_mass)) %>%
   mutate(
     sum_intensity = as.numeric(sum_intensity),
@@ -67,10 +67,20 @@ exp_unmatched <- find_unmatched(
 )
 ```
 
+```{r}
+df_unmatched <- find_unmatched(
+  df = df,
+  df_matched = df_matched,
+  theo_mass_col = "theo_mass",
+  exp_mass_col = "monoisotopic_mass",
+  tol = 10
+)
+```
+
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions_ppm(target_mass = 26042.480, tolerance = 10, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 29893.871, tolerance = 10, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}
@@ -216,31 +226,4 @@ ggplot() +
     y = "Relative Abundance",
     title = "Matched Mass vs Relative Abundance"
   )
-```
-
-
-```{r}
-library(openxlsx)
-# Split into letters
-letters <- strsplit(mrna_seq, "")[[1]]
-
-# Parameters
-chunk_size <- 50
-n <- length(letters)
-n_rows <- ceiling(n / chunk_size)
-
-# Create a vector padded with NA to a full rectangle, fill it left-to-right, top-to-bottom
-vec <- rep(NA_character_, n_rows * chunk_size)
-vec[1:n] <- letters
-
-# Build matrix BY ROW so each row has chunk_size bases horizontally
-mat <- matrix(vec, nrow = n_rows, ncol = chunk_size, byrow = TRUE)
-
-# Optional: add column names as positions 1..100 (or leave FALSE)
-colnames(mat) <- paste0(seq_len(chunk_size))
-
-# Convert to data.frame (optional) and write to excel
-df_seq <- as.data.frame(mat, stringsAsFactors = FALSE)
-
-write.xlsx(df_seq, "sequence_chunked_50_per_row.xlsx", colNames = TRUE)
 ```

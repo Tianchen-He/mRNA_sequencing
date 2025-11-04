@@ -106,3 +106,18 @@ ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
 ```{r}
 plot_depth(df, c(1, 100))
 ```
+
+```{r}
+library(openxlsx)
+seq <- "ACGUGCAAAAAAAAUUACCAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGU"
+
+# Split and reverse the sequence
+seq_split <- strsplit(seq, "")[[1]]
+
+# Create a data frame
+df <- data.frame(Position = 1:length(seq_split),
+                 Base = seq_split)
+
+# Write to Excel
+write.xlsx(df, "vertical_sequence_reversed.xlsx", rowNames = FALSE)
+```
