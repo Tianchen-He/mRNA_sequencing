@@ -124,3 +124,62 @@ plot_ladders = function(input_df_location){
       max.overlaps = 70       
     )
 }
+
+# for remotely outputting ladders
+remotely_output_ladders_found = function(output_df, length, df_location){
+  # filter the output data frame from the nested algorithm based on the length user specified
+  iterations_filtered = output_df %>% 
+    group_by(n_iteration) %>% 
+    count() %>% 
+    filter(n > length) %>% 
+    ungroup() %>% 
+    mutate(ladder_number = paste0("ladder", row_number()))
+  
+  temp = output_df %>% 
+    filter(n_iteration %in% iterations_filtered$n_iteration) %>% 
+    mutate(ladder_number = "") 
+  
+  for(i in 1:nrow(temp)){
+    for(j in 1:nrow(iterations_filtered)){
+      if(temp[i,5] == iterations_filtered[j,1]){
+        temp[i,6] = iterations_filtered[j,3]
+      }
+    }
+  }
+  
+  order_temp = temp %>%
+    group_by(n_iteration) %>% 
+    arrange(monoisotopic_mass) %>% 
+    ungroup() %>% 
+    arrange(n_iteration)
+  
+  
+  write_xlsx(order_temp, "../Result/blind_sequencing_result_point_version.xlsx")
+  
+  temp = temp %>% 
+    mutate(current_sequence = temp$base_name[1]) 
+  for(i in 2:(nrow(temp))){
+    if(temp[i, 5] == temp[i-1, 5]){
+      temp[i, 7] = paste0(temp[i-1, 7], temp[i,1])
+    } else {
+      temp[i, 7] = temp[i, 1]
+    }
+  }
+  
+  for(i in 2:nrow(temp)){
+    if(temp[i, 5] == temp[i-1, 5]){
+      temp[i-1, 7] = ""
+    }
+  }
+  
+  temp = temp %>% filter(current_sequence != "") %>% 
+    rename(sequence = current_sequence, ending_mass = monoisotopic_mass) %>% 
+    mutate(sequence = gsub("High", "", sequence)) %>% 
+    select(sequence, n_iteration, ladder_number, ending_mass)
+  
+  for(i in 1:nrow(temp)){
+    temp[i,1] = paste(rev(strsplit(temp$sequence[i], NULL)[[1]]), collapse = "")
+  }
+  
+  write_xlsx(temp, "../Result/blind_sequencing_result_line_version.xlsx")
+}

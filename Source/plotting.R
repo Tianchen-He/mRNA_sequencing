@@ -37,6 +37,7 @@ plot_mass_rt = function(df, label_it, time_limit){
         y = "Retention Time(min)"
       ) +
       scale_y_continuous(limits = c(0, time_limit), breaks = seq(0, time_limit, by = 2)) +
+      scale_x_continuous(breaks = seq(0, 50000, by = 2500)) + 
       theme(plot.title = element_text(
         size = 12,        # Font size
         face = "bold",    # Font style: "bold", "italic", "bold.italic"
