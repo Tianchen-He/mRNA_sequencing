@@ -8,7 +8,6 @@ date: "2025-10-27"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 
 ```{r}
 # Add the function for ppm calculation
 ppm = function(observed, theo){
@@ -27,8 +26,10 @@ source("Source/plotting.R")
 dictionary = read_xlsx("Data/uni_dictionary.xlsx")
 dictionary = dictionary[c(1, 2, 3, 4),]
 
-set_up("mRNA", "ACGUGCAAAAAAAAUUACCAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGU", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 21)
+set_up("mRNA", "AAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 30)
 ```
+AGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA
+
 
 ```{r}
 prophet_5 = prophet(df, theo_5) #this will be the data frame for matching result, name it whatever you want
@@ -44,18 +45,23 @@ algorithm_output = blind_seq(df, dictionary)
 output_ladders_found(algorithm_output, 6,  file_location)
 ```
 
+```{r}
+nchar("AAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA")
+```
+
+
 ```{r adduct_finder}
 assign("H2O", 18.01528, envir = .GlobalEnv)
 assign("H", 1.00784, envir = .GlobalEnv)
 
-theo_5_deH2O = theo_creater(df, theo_5, -H2O, "dehydrated 5'", 81, TRUE)
-#theo_5_H2O = theo_creater(df, theo_5, H2O, "hydrated 5'", 90, TRUE)
+theo_5_deH2O = theo_creater(df, theo_5, -H2O, "dehydrated 5'", 48, TRUE)
+#theo_5_H2O = theo_creater(df, theo_5, H2O, "hydrated 5'", 53, TRUE)
 
-theo_3_deH2O = theo_creater(df, theo_3, -H2O, "dehydrated 3'", 81, TRUE)
-# theo_3_H2O = theo_creater(df, theo_3, H2O, "hydrated 3'", 85, FALSE)
+theo_3_deH2O = theo_creater(df, theo_3, -H2O, "dehydrated 3'", 48, TRUE)
+#theo_3_H2O = theo_creater(df, theo_3, H2O, "hydrated 3'", 85, FALSE)
 
-new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 81, TRUE)
-new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 81, FALSE)
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 48, TRUE)
+new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 48, FALSE)
 
 # write_xlsx(rbind(
       #new_theo_5, theo_5_deH2O, theo_5_Na, theo_5_Co, theo_5_H2O, theo_5_K), "Sec_May_all_layers.xlsx")#\theo_5_2Co, 
@@ -65,7 +71,7 @@ new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 81, FALSE)
 ```
 
 ```{r}
-df <- rbind(new_theo_5,theo_5_deH2O,new_theo_3, theo_3_deH2O)
+df<- rbind(new_theo_5,theo_5_deH2O, new_theo_3, theo_3_deH2O)
 unique_positions <- unique(df$position_5)
 length(unique_positions)
 ```
@@ -75,7 +81,7 @@ palette = df %>%
   mutate(monoisotopic_mass = as.numeric(monoisotopic_mass), apex_rt = as.numeric(apex_rt)) %>% 
   select(monoisotopic_mass, apex_rt, ladder_type) %>% 
   drop_na() %>% 
-  filter(ladder_type %in% c("native 5'","dehydrated 5'"), apex_rt<=20)
+  filter(ladder_type %in% c("native 3'"), apex_rt<=20)
 
 ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
   geom_line(aes(group = ladder_type),color = "gray", size = 1) +
