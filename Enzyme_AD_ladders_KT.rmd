@@ -27,7 +27,7 @@ source("Source/plotting.R")
 dictionary = read_xlsx("Data/uni_dictionary.xlsx")
 dictionary = dictionary[c(1, 2, 3, 4),]
 
-set_up("mRNA", "ACGUGCAAAAAAAAUUACCAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGU", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 21)
+set_up("mRNA", "ACUCCUCUGGAUCUACUGGGUUACCUAAGGGUGUGGCCCUUCCGCAUAGAACUGCCUGCGUCAGAUUCUCGCAUGCCAGAGAUCCUAUUUUUGGCAAUC", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 21)
 ```
 
 ```{r}
