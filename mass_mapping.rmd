@@ -27,7 +27,7 @@ ppm_match <- function(obs, theo, tol = 10) {
 ```
 
 ```{r}
-exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2.xlsx") %>% 
+exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2_large.xlsx") %>% 
   janitor::clean_names() %>% 
   drop_na() %>% 
   select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
@@ -54,6 +54,8 @@ df_matched <- match_by_ppm(
 ```{r}
 df_matched$mass_diff <- df_matched$theo_mass - df_matched$monoisotopic_mass
 library(writexl)
+write_xlsx(df_matched, "Result/df_matched.xlsx")
+
 #write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
 ```
 
@@ -77,10 +79,14 @@ df_unmatched <- find_unmatched(
 )
 ```
 
+```{r}
+write_xlsx(exp_unmatched,"Result/exp_unmatched.xlsx")
+```
+
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions_ppm(target_mass = 29893.871, tolerance = 10, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 24479.37129, tolerance = 20, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}
@@ -95,10 +101,8 @@ seq_matched <- find_matching_compositions(
 ```
 
 ```{r}
-write_xlsx(seq_matched,"seq_matched.xlsx")
-
+write_xlsx(seq_matched,"Result/seq_matched.xlsx")
 ```
-
 
 # Visualization
 
@@ -188,12 +192,14 @@ ggplot() +
 
 ```
 
+
 ```{r}
 # Define your highlight mass
-highlight_mass <- c(32085.149,27264.38645,19365.40956)
-
-# Define color palette
-cold_to_warm <- c("#2c7bb6", "#00a6ca", "#ffffbf", "#fdae61", "#d7191c")
+highlight_mass <- c(18446.45528,32085.07566,
+26042.44436,
+29893.87205,
+15814.08652,
+13800.79178)
 
 # Plot
 ggplot() +
