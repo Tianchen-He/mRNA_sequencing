@@ -1,0 +1,103 @@
+---
+title: "Undetected_HTC"
+author: "Tianchen He"
+date: "2025-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE, warning=FALSE}
+library(here)
+
+here::i_am("Result/HTC/Undetected_HTC.Rmd")
+setwd(here::here())
+knitr::opts_knit$set(root.dir = here::here())
+
+# Add the function for ppm calculation
+ppm = function(observed, theo){
+  if(abs((observed - theo) / theo * 10^6) > 10) {
+    return(FALSE)
+  } else {
+    return(TRUE)
+  }
+}
+
+source("Source/introduction.R")
+source("Source/blind_seq.R")
+source("Source/plotting.R")
+source("Source/advanced_plotting.R")
+
+# get your dictionary file ready
+dictionary = read_xlsx("Data/uni_dictionary.xlsx")
+options(scipen = 999)
+```
+
+```{r}
+setwd(here::here())
+# 前半段（只看5’）
+set_up("mRNA", "ACAGUAUGGGCAUUUCGCAGCCUACCGUAGUGUUUGUUUCCAAAAAGGGGUUGCAAAAAAUUUUGAACGUGCAAAAAAAAUUAC", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 24000, 0, 30) 
+
+setwd(here::here())
+# 后半段（只看3’）
+set_up("mRNA", "CAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGU", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 24000, 0, 30) 
+```
+
+# Mapping
+```{r adduct_finder}
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 84, TRUE)
+theo_5_dehydrated = theo_creater(df, theo_5, -18.0106, "dehydrated 5'", 84, TRUE)
+
+length(unique(rbind(new_theo_5, theo_5_dehydrated)$position_5))
+
+setwd(here::here())
+write_xlsx(rbind(new_theo_5, theo_5_dehydrated), "Result/HTC/Undetected/Nov3_undetected1_former_all_layers.xlsx")
+
+new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 63, FALSE)
+theo_3_hydrated = theo_creater(df, theo_3, -18.0106, "dehydrated 3'", 63, FALSE)
+
+length(unique(rbind(new_theo_3, theo_3_hydrated)$position_5))
+
+setwd(here::here())
+write_xlsx(rbind(new_theo_3, theo_3_hydrated), "Result/HTC/Undetected/Nov3_undetected1_latter_all_layers.xlsx")
+```
+
+```{r}
+setwd(here::here())
+
+palette = read_xlsx("Result/HTC/Undetected/Nov3_undetected1_latter_all_layers.xlsx") %>% 
+  mutate(monoisotopic_mass = as.numeric(monoisotopic_mass), apex_rt = as.numeric(apex_rt)) %>% 
+  select(monoisotopic_mass, apex_rt, ladder_type) %>% 
+  drop_na() %>% 
+#  filter(ladder_type %in% c("native 5'", "dehydrated 5'"))
+  filter(ladder_type %in% c("native 3'", "dehydrated 3'"))
+
+p <- ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
+  geom_line(aes(group = ladder_type),color = "gray", size = 1) +
+  geom_point(
+        alpha=0.9,
+        size=2) +
+  theme_bw() +
+  labs(
+    x = "Monoisotopic Mass(Da)",
+    y = "Rentention Time(min)"
+  ) +
+  theme(plot.title = element_text(
+      size = 14,        
+      face = "bold",    
+      hjust = 0.5       # Horizontal justification (0 = left, 0.5 = center, 1 = right)
+    )
+  ) +
+  scale_x_continuous(
+    breaks = c(2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22500, 25000),
+    limits = c(0, 27000)
+  ) +
+  scale_y_continuous(
+    breaks = c(2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
+  )
+p
+ggsave("Result/HTC/Undetected/Nov3_undetected1_latter_3'.png", plot = p, width = 12, height = 6, dpi = 300)
+```
+
