@@ -1,0 +1,151 @@
+---
+title: "ladder_mapper"
+author: "Shangsi Lin"
+date: "2025-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+
+make_seq_dataframe <- function(sequence) {
+  stopifnot(is.character(sequence), length(sequence) == 1L)
+
+  nuc <- strsplit(sequence, "", fixed = TRUE)[[1]]
+  idx <- seq_along(nuc)
+  
+
+  df <- as.data.frame(rbind(nucleotide = nuc),
+                      stringsAsFactors = FALSE, optional = TRUE)
+  colnames(df) <- as.character(idx)  # name the column names as positions
+  df
+}
+
+seq <- "GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAAACAUAAAGAAAGGCCCGGCGCCAUUCUAUCCGCUAGAGGAUGGAACCGCUGGAGAGCAACUGCAUAAGGCUAUGAAGAGAUACGCCCUGGUUCCUGGAACAAUUGCUUUUACAGAUGCACAUAUCGAGGUGGACAUCACGUACGCGGAAUACUUCGAAAUGUCCGUUCGGUUGGCAGAAGCUAUGAAACGAUAUGGGCUGAAUACAAAUCACAGAAUCGUCGUAUGCAGUGAAAACUCUCUUCAAUUCUUUAUGCCGGUGUUGGGCGCGUUAUUUAUCGGAGUUGCAGUUGCGCCCGCGAACGACAUUUAUAAUGAACGUGAAUUGCUCAACAGUAUGGGCAUUUCGCAGCCUACCGUAGUGUUUGUUUCCAAAAAGGGGUUGCAAAAAAUUUUGAACGUGCAAAAAAAAUUACCAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGUACACGUUCGUCACAUCUCAUCUACCUCCCGGUUUUAAUGAAUACGAUUUUGUACCAGAGUCCUUUGAUCGUGACAAAACAAUUGCACUGAUAAUGAACUCCUCUGGAUCUACUGGGUUACCUAAGGGUGUGGCCCUUCCGCAUAGAACUGCCUGCGUCAGAUUCUCGCAUGCCAGAGAUCCUAUUUUUGGCAAUCAAAUCAUUCCGGAUACUGCGAUUUUAAGUGUUGUUCCAUUCCAUCACGGUUUUGGAAUGUUUACUACACUCGGAUAUUUGAUAUGUGGAUUUCGAGUCGUCUUAAUGUAUAGAUUUGAAGAGGAGCUGUUUUUACGAUCCCUUCAGGAUUACAAAAUUCAAAGUGCGUUGCUAGUACCAACCCUAUUUUCAUUCUUCGCCAAAAGCACUCUGAUUGACAAAUACGAUUUAUCUAAUUUACACGAAAUUGCUUCUGGGGGCGCACCUCUUUCGAAAGAAGUCGGGGAAGCGGUUGCAAAACGCUUCCAUCUUCCAGGGAUACGACAAGGAUAUGGGCUCACUGAGACUACAUCAGCUAUUCUGAUUACACCCGAGGGGGAUGAUAAACCGGGCGCGGUCGGUAAAGUUGUUCCAUUUUUUGAAGCGAAGGUUGUGGAUCUGGAUACCGGGAAAACGCUGGGCGUUAAUCAGAGAGGCGAAUUAUGUGUCAGAGGACCUAUGAUUAUGUCCGGUUAUGUAAACAAUCCGGAAGCGACCAACGCCUUGAUUGACAAGGAUGGAUGGCUACAUUCUGGAGACAUAGCUUACUGGGACGAAGACGAACACUUCUUCAUAGUUGACCGCUUGAAGUCUUUAAUUAAAUACAAAGGAUACCAGGUGGCCCCCGCUGAAUUGGAGUCGAUAUUGUUACAACACCCCAACAUCUUCGACGCGGGCGUGGCAGGUCUUCCCGACGAUGACGCCGGUGAACUUCCCGCCGCCGUUGUUGUUUUGGAGCACGGAAAGACGAUGACGGAAAAAGAGAUCGUGGAUUACGUCGCCAGUCAAGUAACAACCGCGAAAAAGUUGCGCGGAGGAGUUGUGUUUGUGGACGAAGUACCGAAAGGUCUUACCGGAAAACUCGACGCAAGAAAAAUCAGAGAGAUCCUCAUAAAGGCCAAGAAGGGCGGAAAGAUCGCCGUGUGAUAAUAGGCUGGAGCCUCGGUGGCCUAGCUUCUUGCCCCUUGGGCCUCCCCCCAGCCCCUCCUCCCCUUCCUGCACCCGUACCCCCGUGGUCUUUGAAUAAAGUCUGAGUGGGCGGCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGCAUAUGACUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUGAA"
+
+df_output <- make_seq_dataframe(seq) #the output will be one row of sequences, with column name equaling to position.
+df_output <- data.frame(
+  `Position` = "Ladder #",  
+  df_output,
+  check.names = FALSE     
+)
+```
+
+```{r}
+find_rna_matches <- function(full_seq, query_seq, perfectionist = 100L) {
+  stopifnot(is.character(full_seq), length(full_seq) == 1L,
+            is.character(query_seq), length(query_seq) == 1L,
+            is.numeric(perfectionist), perfectionist >= 1, perfectionist <= 100)
+
+  n <- nchar(full_seq)
+  m <- nchar(query_seq)
+
+  if (m > n) {
+    return(data.frame(
+      start = integer(0), end = integer(0),
+      similarity = numeric(0), matches = integer(0),
+      mismatches = integer(0), window = character(0),
+      match_pos_rel = I(list()),             
+      mismatch_pos_rel = I(list()),           
+      mismatch_pos_abs = I(list()),           
+      mismatch_pairs = I(list()),             
+      profile = character(0),                
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  q_chars <- strsplit(query_seq, "", fixed = TRUE)[[1]]
+  out <- list()
+
+  for (i in 1:(n - m + 1)) {
+    window <- substr(full_seq, i, i + m - 1)
+    w_chars <- strsplit(window, "", fixed = TRUE)[[1]]
+
+    eq <- (q_chars == w_chars)
+    match_ct <- sum(eq)
+    sim <- 100 * match_ct / m
+
+    if (sim >= perfectionist) {
+      match_pos_rel    <- which(eq)
+      mismatch_pos_rel <- which(!eq)
+      mismatch_pos_abs <- if (length(mismatch_pos_rel)) i - 1 + mismatch_pos_rel else integer(0)
+      mismatch_pairs   <- if (length(mismatch_pos_rel)) {
+        paste0(q_chars[mismatch_pos_rel], "/", w_chars[mismatch_pos_rel])
+      } else character(0)
+      profile <- paste(ifelse(eq, "✓", "×"), collapse = "")
+
+      out[[length(out) + 1]] <- data.frame(
+        start = i,
+        end = i + m - 1,
+        similarity = round(sim, 2),
+        matches = match_ct,
+        mismatches = m - match_ct,
+        window = window,
+        match_pos_rel = I(list(match_pos_rel)),
+        mismatch_pos_rel = I(list(mismatch_pos_rel)),
+        mismatch_pos_abs = I(list(mismatch_pos_abs)),
+        mismatch_pairs = I(list(mismatch_pairs)),
+        profile = profile,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  if (length(out) == 0) {
+    return(data.frame(
+      start = integer(0), end = integer(0),
+      similarity = numeric(0), matches = integer(0),
+      mismatches = integer(0), window = character(0),
+      match_pos_rel = I(list()),
+      mismatch_pos_rel = I(list()),
+      mismatch_pos_abs = I(list()),
+      mismatch_pairs = I(list()),
+      profile = character(0),
+      stringsAsFactors = FALSE
+    ))
+  } else {
+    res <- do.call(rbind, out)
+    res[order(res$start), ]
+  }
+}
+
+
+
+full <- "GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAAACAUAAAGAAAGGCCCGGCGCCAUUCUAUCCGCUAGAGGAUGGAACCGCUGGAGAGCAACUGCAUAAGGCUAUGAAGAGAUACGCCCUGGUUCCUGGAACAAUUGCUUUUACAGAUGCACAUAUCGAGGUGGACAUCACGUACGCGGAAUACUUCGAAAUGUCCGUUCGGUUGGCAGAAGCUAUGAAACGAUAUGGGCUGAAUACAAAUCACAGAAUCGUCGUAUGCAGUGAAAACUCUCUUCAAUUCUUUAUGCCGGUGUUGGGCGCGUUAUUUAUCGGAGUUGCAGUUGCGCCCGCGAACGACAUUUAUAAUGAACGUGAAUUGCUCAACAGUAUGGGCAUUUCGCAGCCUACCGUAGUGUUUGUUUCCAAAAAGGGGUUGCAAAAAAUUUUGAACGUGCAAAAAAAAUUACCAAUAAUCCAGAAAAUUAUUAUCAUGGAUUCUAAAACGGAUUACCAGGGAUUUCAGUCGAUGUACACGUUCGUCACAUCUCAUCUACCUCCCGGUUUUAAUGAAUACGAUUUUGUACCAGAGUCCUUUGAUCGUGACAAAACAAUUGCACUGAUAAUGAACUCCUCUGGAUCUACUGGGUUACCUAAGGGUGUGGCCCUUCCGCAUAGAACUGCCUGCGUCAGAUUCUCGCAUGCCAGAGAUCCUAUUUUUGGCAAUCAAAUCAUUCCGGAUACUGCGAUUUUAAGUGUUGUUCCAUUCCAUCACGGUUUUGGAAUGUUUACUACACUCGGAUAUUUGAUAUGUGGAUUUCGAGUCGUCUUAAUGUAUAGAUUUGAAGAGGAGCUGUUUUUACGAUCCCUUCAGGAUUACAAAAUUCAAAGUGCGUUGCUAGUACCAACCCUAUUUUCAUUCUUCGCCAAAAGCACUCUGAUUGACAAAUACGAUUUAUCUAAUUUACACGAAAUUGCUUCUGGGGGCGCACCUCUUUCGAAAGAAGUCGGGGAAGCGGUUGCAAAACGCUUCCAUCUUCCAGGGAUACGACAAGGAUAUGGGCUCACUGAGACUACAUCAGCUAUUCUGAUUACACCCGAGGGGGAUGAUAAACCGGGCGCGGUCGGUAAAGUUGUUCCAUUUUUUGAAGCGAAGGUUGUGGAUCUGGAUACCGGGAAAACGCUGGGCGUUAAUCAGAGAGGCGAAUUAUGUGUCAGAGGACCUAUGAUUAUGUCCGGUUAUGUAAACAAUCCGGAAGCGACCAACGCCUUGAUUGACAAGGAUGGAUGGCUACAUUCUGGAGACAUAGCUUACUGGGACGAAGACGAACACUUCUUCAUAGUUGACCGCUUGAAGUCUUUAAUUAAAUACAAAGGAUACCAGGUGGCCCCCGCUGAAUUGGAGUCGAUAUUGUUACAACACCCCAACAUCUUCGACGCGGGCGUGGCAGGUCUUCCCGACGAUGACGCCGGUGAACUUCCCGCCGCCGUUGUUGUUUUGGAGCACGGAAAGACGAUGACGGAAAAAGAGAUCGUGGAUUACGUCGCCAGUCAAGUAACAACCGCGAAAAAGUUGCGCGGAGGAGUUGUGUUUGUGGACGAAGUACCGAAAGGUCUUACCGGAAAACUCGACGCAAGAAAAAUCAGAGAGAUCCUCAUAAAGGCCAAGAAGGGCGGAAAGAUCGCCGUGUGAUAAUAGGCUGGAGCCUCGGUGGCCUAGCUUCUUGCCCCUUGGGCCUCCCCCCAGCCCCUCCUCCCCUUCCUGCACCCGUACCCCCGUGGUCUUUGAAUAAAGUCUGAGUGGGCGGCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGCAUAUGACUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUGAA"
+temp = find_rna_matches(full, "UAG", perfectionist = 100) #gives start and end of matches found
+mapping_final = temp %>% mutate(ladder_number = 0)
+
+write_xlsx(mapping_final, "clevage_simulation.xlsx")
+```
+
+```{r}
+sequence_line_version = read_xlsx("Result/LSS/Curve2_blind_sequencing_result_line_version.xlsx") %>% 
+  filter(nchar(sequence) >= 5)
+
+for(i in 1:nrow(sequence_line_version)){
+  short_seq = as.character(sequence_line_version[i,1])
+  map_result = find_rna_matches(full, short_seq, perfectionist = 100) %>% 
+    mutate(ladder_number = gsub("[^0-9]", "", sequence_line_version[i,3]))
+  mapping_final = rbind(mapping_final, map_result) %>% 
+    mutate(ladder_number = as.numeric(ladder_number))
+}
+
+for(i in 1:nrow(mapping_final)){
+  df_output[i+1,1] = mapping_final$ladder_number[i]
+  starting_position = mapping_final$start[i]
+  for (j in 1:nchar(mapping_final$window[i])){
+    df_output[i+1, starting_position+j] = substr(mapping_final$window[i], j, j)
+  }
+}
+
+
+df_na = df_output[-1,]
+names(df_na)[colSums(!is.na(df_na)) > 0]
+
+write_xlsx(df_output, "mapping_result.xlsx")
+```
+

@@ -26,7 +26,13 @@ source("Source/plotting.R")
 dictionary = read_xlsx("Data/uni_dictionary.xlsx")
 dictionary = dictionary[c(1, 2, 3, 4),]
 
+<<<<<<< HEAD
 set_up("mRNA", "GGGAAAUAAGAGAGAAAAG", "Data/Pure_AD/NistmRNA_15min_1st_Mistake_251010_JYL.xlsx", "peptide", 330000, 0, 30)
+=======
+
+set_up("mRNA", "AAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 30)
+
+>>>>>>> f8975128f662f5f1d675ba2005c5298a902a90a4
 ```
 
 GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA

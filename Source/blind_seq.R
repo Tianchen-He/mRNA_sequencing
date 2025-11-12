@@ -173,9 +173,9 @@ remotely_output_ladders_found = function(output_df, length, df_location){
   }
   
   temp = temp %>% filter(current_sequence != "") %>% 
-    rename(sequence = current_sequence, ending_mass = monoisotopic_mass) %>% 
+    rename(sequence = current_sequence, starting_mass = monoisotopic_mass) %>% 
     mutate(sequence = gsub("High", "", sequence)) %>% 
-    select(sequence, n_iteration, ladder_number, ending_mass)
+    select(sequence, n_iteration, ladder_number, starting_mass)
   
   for(i in 1:nrow(temp)){
     temp[i,1] = paste(rev(strsplit(temp$sequence[i], NULL)[[1]]), collapse = "")
