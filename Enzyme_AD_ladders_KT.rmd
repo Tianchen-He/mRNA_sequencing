@@ -26,10 +26,10 @@ source("Source/plotting.R")
 dictionary = read_xlsx("Data/uni_dictionary.xlsx")
 dictionary = dictionary[c(1, 2, 3, 4),]
 
-set_up("mRNA", "AAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA", "Data/Enzyme_AD/FlucmRNA_NIST_MazF1FA20min_T01_251023_SG_xiaohong_new.xlsx", "peptide", 330000, 0, 30)
+set_up("mRNA", "GGGAAAUAAGAGAGAAAAG", "Data/Pure_AD/NistmRNA_15min_1st_Mistake_251010_JYL.xlsx", "peptide", 330000, 0, 30)
 ```
-AGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA
 
+GGGAAAUAAGAGAGAAAAGAAGAGUAAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA
 
 ```{r}
 prophet_5 = prophet(df, theo_5) #this will be the data frame for matching result, name it whatever you want
@@ -46,7 +46,7 @@ output_ladders_found(algorithm_output, 6,  file_location)
 ```
 
 ```{r}
-nchar("AAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA")
+nchar("GGGAAAUAAGAGAGAAAAG")
 ```
 
 
@@ -54,14 +54,14 @@ nchar("AAGAAGAAAUAUAAGACCCCGGCGCCGCCACCAUGGAAGACGCCAAAA")
 assign("H2O", 18.01528, envir = .GlobalEnv)
 assign("H", 1.00784, envir = .GlobalEnv)
 
-theo_5_deH2O = theo_creater(df, theo_5, -H2O, "dehydrated 5'", 48, TRUE)
+theo_5_deH2O = theo_creater(df, theo_5, -H2O, "dehydrated 5'", 19, TRUE)
 #theo_5_H2O = theo_creater(df, theo_5, H2O, "hydrated 5'", 53, TRUE)
 
-theo_3_deH2O = theo_creater(df, theo_3, -H2O, "dehydrated 3'", 48, TRUE)
+theo_3_deH2O = theo_creater(df, theo_3, -H2O, "dehydrated 3'", 19, FALSE)
 #theo_3_H2O = theo_creater(df, theo_3, H2O, "hydrated 3'", 85, FALSE)
 
-new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 48, TRUE)
-new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 48, FALSE)
+new_theo_5 = theo_creater(df, theo_5, 0, "native 5'", 19, TRUE)
+new_theo_3 = theo_creater(df, theo_3, 0, "native 3'", 19, FALSE)
 
 # write_xlsx(rbind(
       #new_theo_5, theo_5_deH2O, theo_5_Na, theo_5_Co, theo_5_H2O, theo_5_K), "Sec_May_all_layers.xlsx")#\theo_5_2Co, 
@@ -81,7 +81,7 @@ palette = df %>%
   mutate(monoisotopic_mass = as.numeric(monoisotopic_mass), apex_rt = as.numeric(apex_rt)) %>% 
   select(monoisotopic_mass, apex_rt, ladder_type) %>% 
   drop_na() %>% 
-  filter(ladder_type %in% c("native 3'"), apex_rt<=20)
+  filter(ladder_type %in% c("native 5'"), apex_rt<=20)
 
 ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
   geom_line(aes(group = ladder_type),color = "gray", size = 1) +
@@ -112,6 +112,8 @@ ggplot(palette, aes(x = monoisotopic_mass, y = apex_rt, color = ladder_type)) +
 ```{r}
 plot_depth(df, c(1, 100))
 ```
+
+## Convert for excel denovo assembly 
 
 ```{r}
 library(openxlsx)

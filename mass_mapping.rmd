@@ -27,10 +27,10 @@ ppm_match <- function(obs, theo, tol = 10) {
 ```
 
 ```{r}
-exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_old_charge2_large.xlsx") %>% 
+exp <- read_xlsx("Data/MazF_1st/Fluc_mRNA_MazFalone_251021_test_251107.xlsx") %>% 
   janitor::clean_names() %>% 
   drop_na() %>% 
-  select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>% 
+  select(monoisotopic_mass, apex_rt, sum_intensity, relative_abundance, number_of_detected_intervals) %>%
   #filter(apex_rt <= 20) %>%                
   arrange(desc(monoisotopic_mass)) %>%
   mutate(
@@ -54,7 +54,7 @@ df_matched <- match_by_ppm(
 ```{r}
 df_matched$mass_diff <- df_matched$theo_mass - df_matched$monoisotopic_mass
 library(writexl)
-write_xlsx(df_matched, "Result/df_matched.xlsx")
+#write_xlsx(df_matched, "Result/df_matched.xlsx")
 
 #write_xlsx(df_matched, "Result/matched_mRNA_Fluc_MazF.xlsx")
 ```
@@ -86,7 +86,7 @@ write_xlsx(exp_unmatched,"Result/exp_unmatched.xlsx")
 # Mass reversion
 
 ```{r}
-df_comp <- find_compositions_ppm(target_mass = 24479.37129, tolerance = 20, max_methyl = 0, max_length = 120)
+df_comp <- find_compositions_ppm(target_mass = 12672, tolerance = 20, max_methyl = 0, max_length = 120)
 ```
 
 ```{r}

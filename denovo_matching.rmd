@@ -1,0 +1,75 @@
+---
+title: "mrna_denovo"
+output: html_document
+date: "2025-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringdist)
+library(dplyr)
+library(purrr)
+library(stringr)
+```
+
+```{r}
+df <- read_xlsx("Result/LSS/Curve2_blind_sequencing_result_point_version.xlsx")
+```
+
+```{r}
+# build sequence per ladder, 5' and 3'
+ladder_sequences <- df %>%
+  filter(base_name != "High") %>%                              
+  group_by(ladder_number) %>%
+  summarise(seq = paste(base_name, collapse = ""), .groups = "drop") %>%
+  mutate(
+    seq_length = nchar(seq),
+    seq_reversed = sapply(strsplit(seq, ""), function(x) paste(rev(x), collapse = ""))
+  ) %>%
+  filter(seq_length >= 10)
+```
+
+```{r}
+# function to find approximate match positions with ≥90% similarity
+find_fuzzy_in_string <- function(query, target, tolerance = 0.9) {
+  query_len <- nchar(query)
+  target_len <- nchar(target)
+  max_mismatch <- ceiling(query_len * (1 - tolerance))
+  
+  positions <- vector("list", 0)
+  
+  # slide a window across target
+  for (i in 1:(target_len - query_len + 1)) {
+    sub <- substr(target, i, i + query_len - 1)
+    dist <- stringdist(query, sub, method = "lv")
+    if (dist <= max_mismatch) {
+      positions <- append(positions, list(c(start = i, end = i + query_len - 1, mismatch = dist)))
+    }
+  }
+  
+  if (length(positions) == 0) {
+    return(data.frame(start = NA, end = NA, mismatch = NA))
+  }
+  
+  do.call(rbind, positions)
+}
+```
+
+```{r}
+# apply to each sequence (forward and reversed)
+results <- ladder_sequences %>%
+  mutate(
+    forward_hits = map(seq, ~ find_fuzzy_in_string(.x, mrna_seq, tolerance = 0.9)),
+    reverse_hits = map(seq_reversed, ~ find_fuzzy_in_string(.x, mrna_seq, tolerance = 0.9))
+  )
+
+# if you want flattened results
+results_flat <- results %>%
+  mutate(
+    forward_positions = map(forward_hits, ~ .x[, c("start", "end")]),
+    reverse_positions = map(reverse_hits, ~ .x[, c("start", "end")])
+  ) %>%
+  select(ladder_number, seq, seq_reversed, seq_length, forward_positions, reverse_positions)
+
+results_flat
+```
